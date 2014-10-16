@@ -16,7 +16,16 @@ from mopidy.internal import http, playlists
 from mopidy.models import Track
 
 logger = logging.getLogger(__name__)
+HOOKS = dict()
 
+try:
+    from mopidy_youtube.backend import YoutubeLibraryProvider
+
+    youtube = YoutubeLibraryProvider(None)
+    HOOKS['youtube'] = youtube.search
+    logger.debug("mopidy_youtube detected, will resolve youtube http links through it")
+except ImportError:
+    logger.debug("mopidy_youtube isn't present, youtube http links won't work")
 
 class StreamBackend(pykka.ThreadingActor, backend.Backend):
 
@@ -53,7 +62,8 @@ class StreamLibraryProvider(backend.LibraryProvider):
             r'^(%s)$' % '|'.join(fnmatch.translate(u) for u in blacklist))
 
     def lookup(self, uri):
-        if urlparse.urlsplit(uri).scheme not in self.backend.uri_schemes:
+        parsed_uri = urlparse.urlsplit(uri)
+        if parsed_uri.scheme not in self.backend.uri_schemes:
             return []
 
         if self._blacklist_re.match(uri):
@@ -69,6 +79,13 @@ class StreamLibraryProvider(backend.LibraryProvider):
             track = Track(uri=uri)
 
         return [track]
+
+    def search(self, query=None, uris=None):
+        parsed_uri = urlparse.urlsplit(query['uri'][0])
+        if 'youtube.com' in parsed_uri.netloc or 'youtu.be' in parsed_uri.netloc \
+            and uris[0] in ['http:', 'https:']:
+                logger.debug("youtube link, calling youtube hook")
+                return HOOKS['youtube'](query, uris)
 
 
 class StreamPlaybackProvider(backend.PlaybackProvider):
