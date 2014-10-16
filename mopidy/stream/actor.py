@@ -63,6 +63,9 @@ class StreamLibraryProvider(backend.LibraryProvider):
         return [track]
 
     def search(self, query=None, uris=None):
+        if not uris or uris[0] not in config['stream']['protocols']:
+            return
+
         parsed_uri = urlparse.urlsplit(query['uri'][0])
         if 'youtube.com' in parsed_uri.netloc or 'youtu.be' in parsed_uri.netloc \
             and uris[0] in ['http:', 'https:']:
