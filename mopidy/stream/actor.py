@@ -81,7 +81,7 @@ class StreamLibraryProvider(backend.LibraryProvider):
         return [track]
 
     def search(self, query=None, uris=None):
-        if not uris or uris[0] not in self.backend.uri_schemes:
+        if not uris or uris[0][:-1] not in self.backend.uri_schemes:
             return
 
         parsed_uri = urlparse.urlsplit(query['uri'][0])
