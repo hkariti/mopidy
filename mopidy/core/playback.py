@@ -229,9 +229,12 @@ class PlaybackController(object):
         self.current_tl_track = tl_track
         self.state = PlaybackState.PLAYING
         backend = self._get_backend()
+        old_volume = self.volume
         success = backend and backend.playback.play(tl_track.track).get()
 
         if success:
+            # Keep volume the same; workaround for mixers that reset it on each track
+            self.volume = old_volume
             self.core.tracklist.mark_playing(tl_track)
             self._trigger_track_playback_started()
         else:
